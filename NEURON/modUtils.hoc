@@ -1,0 +1,110 @@
+
+objref file
+file=new File()
+
+objref veclist
+strdef fname
+
+proc ReadGe0s(){
+	
+	fname=$s1
+	file.ropen(fname)
+	Nneurs=file.scanvar()
+	Nsteps=file.scanvar()
+	interv=file.scanvar()
+	
+	veclist= new List()
+	for(n=0;n<Nneurs;n=n+1){
+		veclist.append(new Vector(Nsteps))
+		temp=veclist.object(n)
+		for i=0,Nsteps-1 {temp.x[i]=file.scanvar()}
+		temp.play(&neurs[n].noise.g_e0,1000*interv)
+	}
+	file.close()
+}
+
+proc RescaleGe0s(){
+	fact=$1
+	for i=0,veclist.count()-1{
+		temp=veclist.object(i)
+		temp.mul(fact)
+	}
+}
+
+objref factws
+factws=new Matrix(numneurons,numneurons)
+proc SetFacts(){
+	for i=0,numneurons-1{factws.setcol(i,$1)}
+
+}
+SetFacts(1)
+
+proc MakeRndFacts(){
+	r.uniform(0,1)
+	for i=0,numneurons-1{
+		for k=0,numneurons-1{
+				factws.x[i][k]=r.repick*($2-$1)+$1
+		}
+		factws.x[i][i]=0
+	}
+}
+
+proc ReadSynWs(){
+	
+	fname=$s1
+	file.ropen(fname)
+	Nneurs=file.scanvar()
+	Nsteps=file.scanvar()
+	interv=file.scanvar()
+	
+	veclist= new List()
+	idx=0
+	for(n=0;n<Nneurs;n=n+1){
+		for(p=0;p<Nneurs;p=p+1){
+			if(n!=p){
+				veclist.append(new Vector(Nsteps))
+				temp=veclist.object(idx)
+				
+				for i=0,Nsteps-1 {temp.x[i]=factws.x[n][p]*file.scanvar()}
+				temp.play(&syn[n][p].gmax,1000*interv)
+				idx=idx+1
+			}
+		}
+	}
+}
+
+proc RescaleSynWs(){
+	fact=$1
+	for i=0,veclist.count()-1{
+		temp=veclist.object(i)
+		temp.mul(fact)
+		
+	}
+}
+
+proc ShowSyns(){
+	for i=0,numneurons-1{
+		for j=0,numneurons-1{
+			if(i!=j){
+				mat.x[i][j]=syn[i][j].gmax
+			}
+		}
+	}
+	showmat()
+}
+
+proc SaveRaster(){
+	fname=$s1
+	file.wopen(fname)
+	file.printf("%d %f\n", numneurons, tstop)
+	for i=0, numneurons-1{
+		file.printf("%d ", neurs[i].apvector.size)
+		for j=0, neurs[i].apvector.size-1{
+			file.printf("%f ",neurs[i].apvector.x[j])
+		}
+		file.printf("\n")
+	}
+	file.close()
+	printf("Raster saved in %s\n",fname)
+}
+

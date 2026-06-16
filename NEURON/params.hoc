@@ -1,0 +1,14 @@
+// Declare variables that Python can override
+numneurons = 0       // placeholder; Python will overwrite
+tstop = 1000
+
+/*
+firstenrn = 0
+lastenrn = numneurons-1
+firstinrn = -1
+lastinrn = -1
+tstop = 5000
+dt = 0.1
+celsius = 36
+v_init = -70
+*/

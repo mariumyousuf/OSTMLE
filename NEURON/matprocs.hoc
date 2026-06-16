@@ -1,0 +1,278 @@
+objref f1
+
+proc updateweights(){
+for i=0,numneurons-1{
+	for k=0,numneurons-1{
+			if(i!=k){
+				if (mat.x[i][k]>=0){
+					syn[i][k].gmax=mat.x[i][k]
+				}else{
+					fprint("\nWarning, negative weights between %d and %d:conductance set to zero",k,i)
+					syn[i][k].gmax=0
+				}
+			}
+	}
+}
+showmat()
+}
+
+proc Create1Syn(){
+	mat.x[$2][$1]=$3
+	updateweights()
+}
+
+proc CreateRandSyn(){
+Maxn=numneurons-1
+Ngrps=2
+if (numarg() >2 ) {
+	if ($3>1 && $3 <numneurons){	Maxn=$3}
+	if ($4*$3<=numneurons){ Ngrps=$4}
+}
+mat.zero()
+r.uniform(0,1)
+for gr=1,Ngrps-1 {
+	grpstart=Maxn*(gr-1)
+	grpend=Maxn*gr -1
+	for i=grpstart,grpend{
+		for k=grpstart,grpend{
+				mat.x[i][k]=r.repick*($2-$1)+$1
+		}
+		mat.x[i][i]=0
+	}
+}
+updateweights()
+}
+
+proc CreateSymRandSyn(){
+Maxn=numneurons-1
+if (numarg() >2 ) {
+	if ($3>1 && $3 <numneurons){
+	Maxn=$3-1}
+}
+mat.zero()
+r.uniform(0,1)
+for i=0,Maxn{
+	for k=0,i-1{
+			tempval=r.repick*($2-$1)+$1
+			mat.x[i][k]=tempval
+			mat.x[k][i]=tempval
+	}
+	mat.x[i][i]=0
+}
+updateweights()
+}
+
+proc CreateSynPer(){
+mat.zero()
+Nconnect=$1
+for k=0, numneurons-1{
+		N=0
+		while(N<Nconnect){
+			i=r.uniform(0,numneurons)
+			i=i-i%1
+			if (mat.x[i][k]==0){
+					mat.x[i][k]=r.uniform($2,$3)
+					N=N+1
+			}
+		}
+}
+updateweights()
+}
+
+proc ScaleBlock(){
+for i=$3, $4{
+	for k= $1, $2{
+		mat.x[i][k]=mat.x[i][k]*$5		
+		}
+	}
+updateweights()
+}
+
+proc TranslateBlock(){
+for i=$3, $4{
+	for k= $1, $2{
+		mat.x[i][k]=mat.x[i][k]+$5	
+		if(	mat.x[i][k]<0){mat.x[i][k]=0}
+		}
+	}
+updateweights()
+}
+
+proc IncreaseBlock(){
+for i=$3, $4{
+	for k= $1, $2{
+		mat.x[i][k]=mat.x[i][k]+$5+$6*r.uniform(-1,1)	
+		if(	mat.x[i][k]<0){mat.x[i][k]=0}
+		}
+	}
+updateweights()
+}
+
+objref vstat
+
+proc BlockStats(){
+size=($4-$3+1)*($2-$1+1)
+vstat=new Vector(size)
+idx=0
+for i=$3, $4{
+	for k= $1, $2{
+		if(i!=k){
+			vstat.x[idx]=mat.x[i][k]
+			idx=idx+1
+		}
+	}
+}
+vstat.resize(idx)
+printf("%d, Mean weight=%f, Std=%f\n",idx, vstat.mean(),vstat.stdev())
+}
+
+proc CreateSynBlock(){
+for i=$3, $4{
+	for k= $1, $2{
+		mat.x[i][k]=$5		
+		}
+	}
+updateweights()
+}
+
+proc CreateChain(){
+for i=$1,$2-1{
+	mat.x[i][i+1]=$3
+}
+updateweights()
+}
+
+proc writemat(){
+	f1= new File()
+	f1.wopen("core.txt")
+	f1.printf("\n%d\n%d\n",numrows,numcols)
+	for i=0, i=numrows-1{
+		for k=0, k=numcols-1 {
+			num=mat.x[i][k]
+			f1.printf("%f\t",num)
+		}
+		f1.printf("\n")
+	}
+	f1.close()
+}
+
+proc writematn(){
+	f1= new File()
+	f1.wopen("corenew.txt")
+	f1.printf("\n%d\n%d\n",numrows,numcols)
+	for i=0, i=numrows-1{
+		for k=0, k=numcols-1 {
+			num=mat.x[i][k]
+			f1.printf("%f\t",num)
+		}
+		f1.printf("\n")
+	}
+	f1.close()
+}
+
+/*
+proc readmat(){
+	f1 = new File()
+	f1.ropen("core.txt")
+	numrows=f1.scanvar()
+	numcols=f1.scanvar()
+	mat = new Matrix(numrows, numcols)
+	for i=0, i=numrows-1{
+		for k=0, k<numcols-1 {
+			mat.x[i][k]=f1.scanvar()
+		}
+	}
+}
+*/
+
+/*
+// MY
+
+proc readmat(){
+//reads matrix from file that was used in writemat and stores in matrix mat
+
+	strdef fname
+	fname=$s1
+	f1 = new File()
+	f1.ropen(fname)
+
+	numrows=f1.scanvar()
+	numcols=f1.scanvar()
+
+	mat = new Matrix(numrows, numcols)
+	for i=0, i=numrows-1{
+		for k=0, k=numcols-1 {
+			mat.x[i][k]=f1.scanvar()
+		}
+	}
+}
+
+proc saveSpikeData(){
+	N=$1
+	numSamples=40 //samples
+	print N
+
+	strdef mxName
+	sprint(mxName, "%s.%s", "../groundtruths/10nodeHalfCycle_3", "txt")
+	print mxName
+	print mxName
+	readmat(mxName)
+	updateweights()
+	print "done"
+	for idx=0,numSamples {
+		strdef fname
+		sprint(fname, "%s%s%d%s%d.%s", "../spikedata/10nodeHalfCycle_3/", "rasterplot-", N, "node_", idx, "txt")
+		go()
+		SaveRaster(fname)
+	}
+}
+*/
+
+proc readmat() { 
+  if (numarg() < 1) {
+    printf("Usage: readmat(filename)\n")
+    return
+  }
+  strdef fname
+  fname = $s1   // filename passed as string
+  f1 = new File()
+  f1.ropen(fname)
+
+  numrows = f1.scanvar()
+  numcols = f1.scanvar()
+
+  mat = new Matrix(numrows, numcols)
+  for i=0, numrows-1 {
+    for k=0, numcols-1 {
+      mat.x[i][k] = f1.scanvar()
+    }
+  }
+  f1.close()
+}
+
+proc saveSpikeData() {
+  if (numarg() < 2) {
+    printf("Usage: saveSpikeData(filename, Nsamples)\n")
+    return
+  }
+
+  strdef fname
+  strdef basefolder
+  fname = $s1   // filename from Python
+  basefolder = $s2
+  N = $3        // number of spike samples
+  numSamples = $4
+
+  print N
+  print fname
+  readmat(fname)   // now works with any filename
+  updateweights()
+  print "done"
+
+  for idx=0,numSamples-1 {
+      strdef outname
+      sprint(outname, "%s/rasterplot_N%d_%d.txt", basefolder, N, idx)
+      go()
+      SaveRaster(outname)
+  }
+}

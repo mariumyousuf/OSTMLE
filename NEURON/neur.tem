@@ -1,0 +1,87 @@
+
+// Template for a single neuron
+
+begintemplate neur
+public soma, nclist, apc, noise, membrane, apvector, noise2
+create soma
+objectvar nclist
+objref apc, noise,membrane, apvector, noise2
+
+proc init(){
+	EK=-85
+	ENa=55
+	create soma
+	nclist=new List()
+	apvector=new Vector(0)
+	
+	
+	soma{
+		nseg=1
+		diam=70
+		L=70
+		Ra=250
+	}
+	
+	access soma
+	
+	insert pas		// leak current
+	e_pas = -70
+	g_pas = 4e-5  		
+	cm=1	
+	
+	insert Na		// from Golomb & Amitai
+	ena=    55
+	g_Na= 	0.04			//0.024
+	
+	insert Kdr
+	ek=    -90
+	g_Kdr=  0.005			//0.003
+	
+	if ($1>0){								// for excitatory cells
+		insert iahp		// burst IAHP
+		cac_iahp = 0.025
+		beta_iahp = 0.03
+		taumin_iahp = 0.1 //5
+		ek=EK
+		gkbar_iahp = 15	// 300ps/um2
+	
+	 	insert ca    
+		gbar_ca = 0.3	//0.4		// 1.6ps/um2
+	
+		insert cad		// calcium pump
+		cainf_cad=2.4e-4	//0.005		//2.4e-4
+		caini=2.4e-4		//0.04		//2.4e-4
+		kd_cad = 1e-4		//cainf_cad*4	//1e-4// 5e-3=slow (~200ms recovery) ahp
+		kt_cad = 1e-4/5		//1e-4/4
+		depth_cad = 1  //1
+		taur_cad = 1e10
+	    decay_cad=3			//3=short bursts //0.7	//50     //.5 
+	
+	  	//insert rchan
+		//mean_rchan=0.00023	
+		//stdev_rchan=0.00065	
+	}
+	
+	noise = new Gfluct2(0.5)
+	noise.std_e =0.001 	// standard deviation excitatory
+	noise.std_i =0.008	// standard deviation inhibitory
+	noise.g_e0=0.0075	// mean excitatory
+	noise.g_i0=0.035	// mean inhibitory
+
+	apc = new APCount(.5)
+	apc.record(apvector)
+
+	// record the membrane potential of the neuron. Comment these two lines out
+	// for speed, if you do not want to record membrane voltage. Use membstats() to analyze
+	membrane=new Vector()
+	membrane.record(&soma.v(0.5))
+
+// If needed second noise input (used to simulate common inputs)
+	noise2 = new Gfluct2(0.5)
+	noise2.std_e =0 	// standard deviation excitatory
+	noise2.std_i =0	// standard deviation inhibitory
+	noise2.g_e0=0	// mean excitatory
+	noise2.g_i0=0	// mean inhibitory
+
+}
+endtemplate neur

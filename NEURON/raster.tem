@@ -1,0 +1,102 @@
+/*----------------------------------------------------------------------------
+
+	Jean-Marc Fellous
+	Salk Institute - C.N.L.
+	fellous@salk.edu
+
+----------------------------------------------------------------------------*/
+
+
+begintemplate RasterPlot
+public plot, draw, erase,begin, fastflush, flush, size, resize, view_count, g, drawt, vec, synlist, view_rate
+
+objref aplist, g, vec,synlist
+
+drawt=0
+
+proc init() {
+        aplist = $o1
+        g = new Graph()
+	g.size(0, $2, 0, 1)
+	vec=$o3
+	synlist=$o4
+
+}
+
+proc resize(){
+	g.size(0, $1, 0, $2)
+}
+
+
+
+proc plot() {						
+	if (t==0){
+	vec.fill(0)
+	}	
+	
+	for (i=0; i<aplist.count();i=i+1){
+                	if (aplist.object(i).n > vec.x[i]) {
+                        	//aplist.object(i).time = 0
+                        	g.beginline(3,2)
+                        	g.line(t, i)
+                        	g.line(t, i+.8)
+                        	vec.x[i]=aplist.object(i).n
+                        
+                	}
+                }
+}
+
+proc draw() {
+                if (drawt> 0) {
+                  
+                       g.beginline(3,2)
+                       g.line(drawt, trial_index)
+                       g.line(drawt, trial_index+.8)
+						
+                }
+}
+
+proc flush() {
+        g.flush()
+}
+proc fastflush() {
+        g.flush()
+}
+
+proc erase(){
+	g.erase()
+}
+
+proc begin(){
+	//g.erase()
+}
+
+func size() {
+        if (numarg() == 4) {
+                return g.size($1,$2,$3,$4)
+        }else{
+                return g.size($1)
+        }
+}
+
+func view_count() {
+        return g.view_count()
+}
+objref rts
+proc view_rate(){
+		
+		rts= new Vector($2-$1+1)
+		rts.fill(0)
+		for (i=$1; i <=$2; i=i+1){
+			rts.x[i-$1]=aplist.object(i).n
+		}
+		rts.div(t/1000)
+		printf("Mean rate=%f, Std=%f\n", rts.mean(),rts.stdev())
+}
+
+endtemplate RasterPlot
+
+
+
+
+

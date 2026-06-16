@@ -1,0 +1,80 @@
+./ca.c: ../ca.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "..";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "ca.mod" -o "/Users/mariumyousuf/Desktop/causal/fall2025/NEURONFA25/CoreSmallNet/modfiles/arm64")
+
+./ca.o: ./ca.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./cad.c: ../cad.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "..";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "cad.mod" -o "/Users/mariumyousuf/Desktop/causal/fall2025/NEURONFA25/CoreSmallNet/modfiles/arm64")
+
+./cad.o: ./cad.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./expsyn2.c: ../expsyn2.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "..";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "expsyn2.mod" -o "/Users/mariumyousuf/Desktop/causal/fall2025/NEURONFA25/CoreSmallNet/modfiles/arm64")
+
+./expsyn2.o: ./expsyn2.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./expsyn3.c: ../expsyn3.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "..";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "expsyn3.mod" -o "/Users/mariumyousuf/Desktop/causal/fall2025/NEURONFA25/CoreSmallNet/modfiles/arm64")
+
+./expsyn3.o: ./expsyn3.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./Gfluct.c: ../Gfluct.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "..";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "Gfluct.mod" -o "/Users/mariumyousuf/Desktop/causal/fall2025/NEURONFA25/CoreSmallNet/modfiles/arm64")
+
+./Gfluct.o: ./Gfluct.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./iahp.c: ../iahp.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "..";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "iahp.mod" -o "/Users/mariumyousuf/Desktop/causal/fall2025/NEURONFA25/CoreSmallNet/modfiles/arm64")
+
+./iahp.o: ./iahp.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./kdr.c: ../kdr.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "..";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "kdr.mod" -o "/Users/mariumyousuf/Desktop/causal/fall2025/NEURONFA25/CoreSmallNet/modfiles/arm64")
+
+./kdr.o: ./kdr.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./ksynProb2.c: ../ksynProb2.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "..";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "ksynProb2.mod" -o "/Users/mariumyousuf/Desktop/causal/fall2025/NEURONFA25/CoreSmallNet/modfiles/arm64")
+
+./ksynProb2.o: ./ksynProb2.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./ksynProb3.c: ../ksynProb3.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "..";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "ksynProb3.mod" -o "/Users/mariumyousuf/Desktop/causal/fall2025/NEURONFA25/CoreSmallNet/modfiles/arm64")
+
+./ksynProb3.o: ./ksynProb3.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./na.c: ../na.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "..";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "na.mod" -o "/Users/mariumyousuf/Desktop/causal/fall2025/NEURONFA25/CoreSmallNet/modfiles/arm64")
+
+./na.o: ./na.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+

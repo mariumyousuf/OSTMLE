@@ -1,0 +1,101 @@
+
+proc ep(){			// small procedure to erase the rasterplots. Just type ep()
+	if (WithGraphics==1){
+		rplot.erase()
+		//orplot.erase()
+	}
+}
+
+
+proc go(){
+	ep()
+	init()
+	run()
+	//orplot.finish()
+	efr=0
+	ifr=0
+	if(firstenrn>=0){
+		for i=firstenrn,lastenrn{efr=efr+neurs[i].apc.n}
+	}
+	if(firstinrn>=0){
+		for i=firstinrn,lastinrn{ifr=ifr+neurs[i].apc.n}
+	}
+	//print "Simulation duration: ", realtime, " s - Average excit FR:",1000*efr/t/(lastenrn-firstenrn+1)," Average inhib FR:",1000*ifr/t/(lastinrn-firstinrn+1)
+}
+
+// Computes the average firing rate per group of neurons
+
+
+proc GrpFRs(){
+	ng=GrpSizeVec.size()
+	strt=0
+	if(ng>0 && t>0){
+		for (gr=1;gr<=ng; gr=gr+1){
+			fr=0
+			for (i=strt; i<strt+GrpSizeVec.x[gr-1]; i=i+1){fr=fr+neurs[i].apc.n}
+			print "Group ", gr, " (N=", GrpSizeVec.x[gr-1],")-> Average FR: ", 1000*fr/t/GrpSizeVec.x[gr-1], " Hz"
+			strt=GrpSizeVec.x[gr-1]
+		}
+	}
+
+}
+
+// Set the excitatory background conductance of all Excitatory neurons
+proc SetENoise(){
+	if (firstenrn>=0){
+		for i=firstenrn,lastenrn{neurs[i].noise.g_e0=$1}
+	}
+}
+
+// Set the excitatory background conductance of a set of consecutive neurons
+// SetSomeENoise(value, first neuron index, last neuron index)
+proc SetSomeENoise(){
+	for i=$2,$3{neurs[i].noise.g_e0=$1}
+}
+
+// Set the inhibitory background conductance of all Inhibitory neurons
+proc SetINoise(){
+	if (firstinrn>=0){
+		for i=firstinrn,lastinrn{neurs[i].noise.g_i0=$1}
+	}
+}
+
+
+/*
+MinW=0
+MaxW=0.003
+ENoise=0.012
+INoise=0.012
+ee=1 
+ie=1 
+ei=1 
+ii=1 
+oldee=1 
+oldie=1 
+oldei=1 
+oldii=1
+Ntrials=1
+NinGroup=5
+NGroups=2
+
+xpanel("Net-Tune")
+xvalue("Minweight","MinW",1)
+xvalue("Maxweight","MaxW",1)
+xvalue("# neuron in group","NinGroup",5)
+xvalue("# of groups","NGroups",3)
+xbutton("Randomize","{CreateRandSyn(MinW,MaxW, NinGroup) ee=1 ie=1 ei=1 ii=1 oldee=1 oldie=1 oldei=1 oldii=1}")
+xbutton("Randomize (symmetric)","{CreateSymRandSyn(MinW,MaxW, NinGroup) ee=1 ie=1 ei=1 ii=1 oldee=1 oldie=1 oldei=1 oldii=1}")
+xlabel("----------------------")
+xvalue("E -> E:","ee",1,"{ScaleBlock(firstenrn,lastenrn,firstenrn,lastenrn,ee/oldee)  oldee=ee}")
+xvalue("E -> I:","ei",1,"{ScaleBlock(firstenrn,lastenrn,firstinrn,lastinrn,ei/oldei)  oldei=ei}")
+xvalue("I -> E:","ie",1,"{ScaleBlock(firstinrn,lastinrn,firstenrn,lastenrn,ie/oldie)  oldie=ie}")
+xvalue("I -> I:","ii",1,"{ScaleBlock(firstinrn,lastinrn,firstinrn,lastinrn,ii/oldii)  oldii=ii}")
+xlabel("----------------------")
+xvalue("E Noise","ENoise",1,"SetENoise(ENoise)")
+xvalue("I Noise","INoise",1,"SetINoise(INoise)")
+xbutton("Run Once","go()")
+xlabel("----------------------")
+xvalue("Number Trials","Ntrials",1)
+xbutton("Do Trials","DoIt(Ntrials)")
+xpanel()
+*/

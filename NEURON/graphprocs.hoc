@@ -1,0 +1,82 @@
+
+
+objectvar g[15]			// max 15 graphs
+ngraph = 0
+
+proc addgraph() { local ii	// define subroutine to add a new graph
+				// addgraph("variable", minvalue, maxvalue)
+	ngraph = ngraph+1
+	ii = ngraph-1
+	g[ii] = new Graph()
+	g[ii].size(0,tstop,$2,$3)
+	g[ii].xaxis()
+	g[ii].yaxis()
+	g[ii].addvar($s1,1,0)
+	g[ii].save_name("graphList[0].")
+	graphList[0].append(g[ii])
+}
+
+
+// Weight matrix--------
+objref matplot
+matplot=new PlotShape()
+objref vec
+nx = numneurons
+ny = numneurons
+vec = new Vector(nx*ny)
+matplot.erase_all
+
+proc showmat(){
+// display mat in gray scale. White is a strong connection
+
+	matplot.colormap(255)
+	for (i=0;i<255;i=i+1){
+		matplot.colormap(i,i,i,i)
+	}
+
+	mx=maxmat(mat)
+	mn=minmat(mat)
+	matplot.scale(mn,mx)
+
+	vec.fill(0)
+
+	for i=0,nx-1 for j=0,ny-1 {
+		vec.x[i*ny + j]=mat.x[nx-1-j][i]			// comes out regular [i][j]
+		matplot.hinton(&vec.x[i*ny + j], i/nx, j/ny, 1/nx)
+	}
+
+	matplot.size(-0.05, 1.0, -0.05, 1.0)
+	//matplot.exec_menu("Shape Plot")		//put the scale on. not useful
+
+	matplot.fastflush() // faster by up to a factor of 4
+
+	doNotify()
+
+}
+
+
+// Auxilliary functions for matrices
+func maxmat(){
+	max=-1e20
+	for i=0,$o1.nrow-1{
+		for j=0,$o1.ncol-1{
+			if ($o1.x[i][j]>max){
+				max=$o1.x[i][j]
+			}
+		}
+	}
+	return max
+}
+
+
+func minmat(){
+	min=1e20
+	for i=0,$o1.nrow-1{
+		for j=0,$o1.ncol-1{
+			if ($o1.x[i][j]<min){
+				min=$o1.x[i][j]
+			}
+		}
+	}
+	return min
+}

@@ -1,0 +1,110 @@
+
+
+
+//assigns synaptic weights according to matrix values
+//no synapse is created if value equal to 0
+
+objref temp
+proc CreateSyns(){ 
+
+for i=0, numneurons-1{
+	neurs[i].nclist.remove_all()			// list of synapses on i
+	for k=0, numneurons-1{
+		//if (mat.x[i][k]!=0){								// create all the synapses
+		if(i!=k){															//except synapses of a cell onto itself
+			neurs[i].soma syn[i][k] = new ExpSyn2(0.5)			// deterministic AMPA synapse
+			//neurs[i].soma syn[i][k] = new ExpSyn3(0.5)			// deterministic NMDA synapse
+			syn[i][k].gmax=0	// use ~0.01 for subthreshold ~0.1 for 1-to-1 spiking
+			syn[i][k].tau=2.7	// for AMPA
+			//syn[i][k].tau=60	// for NMDA
+			
+			//neurs[k].soma syn[i][k] = new KSynProbFull(0.5)		// probabilistic synapse between i->k
+			//AssignSynParams(syn[i][k])										//initialize the probabilistic synapse
+			//syn[i][k].compart=k					// record where the synapse is inserted
+
+			neurs[k].soma neurs[i].nclist.append(new NetCon(&neurs[k].soma.v(0.5), syn[i][k], -10, 3, 1))
+			//neurs[i].nclist.append(temp)	// connects  k to i. Note weight should always be 1. 
+											//use updateweights() to assign/modify the weights.
+
+			//synlist.append(syn[i][k])
+		}
+		
+	}
+}
+}
+
+
+//---------------------------------------------------
+// Assigns(instantiate) a Glu-type synapse
+//$1	= synapse index
+//$2	= synplace
+//$3	= compartment index
+proc AssignSynParams(){
+		
+		$o1.gmax= 0//
+			
+		
+		$o1.F0=0.0011	//0.0238 0.003	// F0 x D0 = 0.356 = -log(1-0.3) or F0xD0=0.178=-log(1-0.2)
+		$o1.Fmag=0.003 	//0.003
+		$o1.D0=300	//118			//118 (p=0.3), 60(p=0.2), 40(p=0.11)
+		$o1.Dmag=170				//170 (p=0.3), 85(p=0.2), 56(p=0.11)
+		
+		$o1.onset[0]=1e20
+		$o1.ntimes=0
+		$o1.stim=.01
+		$o1.tau=3
+
+}	
+
+
+
+
+
+
+
+
+//------ set gmax value of a list of synapses
+//args: $o1=list of synapses
+//	$2=value
+	
+objref temp
+proc SetGmax(){local N
+	N=$o1.count()
+	for (j=0;j<N;j=j+1){
+		temp=$o1.object(j)
+		temp.gmax=$2
+	}
+}
+
+
+// For facilitation and depression parameters
+
+proc SetF0(){local N
+	N=$o1.count()
+	for (j=0;j<N;j=j+1){
+		temp=$o1.object(j)
+		temp.F0=$2
+	}
+}
+proc SetFmag(){local N
+	N=$o1.count()
+	for (j=0;j<N;j=j+1){
+		temp=$o1.object(j)
+		temp.Fmag=$2
+	}
+}
+proc SetD0(){local N
+	N=$o1.count()
+	for (j=0;j<N;j=j+1){
+		temp=$o1.object(j)
+		temp.D0=$2
+	}
+}
+proc SetDmag(){local N
+	N=$o1.count()
+	for (j=0;j<N;j=j+1){
+		temp=$o1.object(j)
+		temp.Dmag=$2
+	}
+}
+

@@ -1,0 +1,532 @@
+
+// Network simulations. Excitatory and inbitory neurons
+// Clustering in assemblies
+// Study of the assembly behaviors under synaptic pattern change, external noise, common noise variations.
+//
+//Jean-Marc Fellous - CENL - 2018-2022
+//
+// last update: JMF. Simulation with 100 neurons (7/2022)
+
+load_file("nrngui.hoc")
+nrnmainmenu()
+nrncontrolmenu()
+
+//create square matrix of random numbers to model 
+//neural network
+//row % of connections
+
+dt=0.1
+// tstop = 5000
+runStopAt = tstop
+steps_per_ms = 10
+celsius = 36
+v_init = -70
+
+
+objref mat, r, restvec
+objref vrvec, vdvec, histvec, histbins, g, v1, v2, v3
+strdef name,basename
+objref GrpSizeVec
+
+/*
+//size/types of the network (total number of neurons)
+numneurons=10 // 100 //30		//10	//36	// 7
+*/
+// indexes of e/i neurons
+firstenrn=0
+lastenrn=numneurons-1		//99 //29	//9	//29	// 6
+firstinrn=-1	//30
+lastinrn=-1	//35
+
+
+// --------Graphics
+objref rplot					// create the spike rasterplot
+//objref orplot					// create the onset rasterplot
+
+WithGraphics=1			// 1: will plot rastergram, membrane voltage, etc...
+
+
+
+objref aplist
+aplist = new List()
+objref vec
+vec=new Vector(numneurons)
+vec.fill(0)
+
+//random number generator
+seed=17
+r=new Random(seed)
+
+load_file("neur.tem")					// load the template for a single neuron
+objectvar neurs[numneurons]
+
+if(firstenrn>=0){
+	for i=firstenrn,lastenrn{
+		neurs[i]=new neur(1)					// create the excitatory neurons
+		neurs[i].noise.std_e=.003	//.0003
+		neurs[i].noise.std_i=.012	//.002
+		neurs[i].noise.g_e0=.012
+		neurs[i].noise.g_i0=0.045
+		
+		aplist.append(neurs[i].apc)	// update the list of action-potential detectors
+	}
+}
+
+if(firstinrn>=0){
+	for i=firstinrn,lastinrn{
+		neurs[i]=new neur(0)					// create the inhibitory neurons
+		neurs[i].noise.std_e=.003	//.0003
+		neurs[i].noise.std_i=.012	//.002
+		neurs[i].noise.g_e0=.012
+		neurs[i].noise.g_i0=0.045
+		
+		aplist.append(neurs[i].apc)	// update the list of action-potential detectors
+	}
+}
+
+
+
+mat = new Matrix(numneurons, numneurons)	// connection matrix
+mat.zero()								// initmat() not needed. Use mat.zero() to zero all elements of a matrix. See documentation on Matrix
+
+
+//create synapses
+objref syn[numneurons][numneurons]		// make this a 2D matrix
+
+objref synlist					// make a list of synapses
+synlist=new List()
+
+
+
+xopen("raster.tem")				// load template for raster plots
+//xopen("rasteronset.tem")	// load template for raster plots showing just onsets of up states
+xopen("graphprocs.hoc")
+
+//******************PROCS*********************
+
+load_file("matprocs.hoc")							//contains writemat(), writematn(), readmat()
+load_file("synprocs.hoc")			// contains AssignSynParams()
+load_file("modUtils.hoc")
+load_file("NetGui.hoc")
+
+CreateSyns()
+
+if (firstinrn>=0){					// if there are GABA interneurons...
+	for k=firstinrn,lastinrn{
+		for i=0, numneurons-1{
+			if(i!=k){
+				syn[i][k].tau=10
+				syn[i][k].e=-80
+			}
+		}
+	}
+}
+
+
+mat.zero()
+// updateweights()
+
+
+
+
+
+// Control
+
+//INoise=0.012
+
+//ENoise=0.011	// indep1-InterC1
+//ENoise=0.013	// indep2-InterC2
+//ENoise=0.015	// indep3-InterC3
+//ENoise=0.018	// indep4-InterC4
+
+
+//----------------------------------------------------------------
+//FUNCTIONS- SIMULATIONS
+//----------------------------------------------------------------
+
+// execute and save multiple trials of a simulation (fixed parameters)
+objref RealTimes
+RealTimes = new Vector()
+
+proc DoIt(){
+	string_dialog("Enter basename for file series:", basename)
+	RealTimes = new Vector()
+	for Nt=1,$1{
+		go()
+		sprint(name,"%s-%d.txt",basename,Nt)
+		SaveRaster(name)
+		RealTimes.append(realtime)
+	}
+	printf("Average simulation duration per trial: %.1f s (+- %.1f)\n",RealTimes.mean(), RealTimes.stdev())
+}
+
+// $1 nb trials per param set
+// $2 nb of param sets
+objref r, paramsfile
+r=new Random(2)
+paramsfile=new File()
+proc DoDuals(){
+	string_dialog("Enter basename for dual file series:", basename)
+	
+	sprint(name,"%s-params.txt",basename)
+	paramsfile.wopen(name)
+	oldee=1
+	for N=1,$2{						// offset to add to the 20 datasets for masami
+		//ee=r.uniform(1,6)			// 10 neurons
+		ee=r.uniform(1,5)			//30 neurons
+		//ee=r.uniform(1,4)			//100 neurons
+		
+		n=r.uniform(0.010,0.016)	// 10 and 30 neurons and 100 neurons
+		
+		ScaleBlock(firstenrn,lastenrn,firstenrn,lastenrn,ee/oldee)
+		oldee=ee
+		SetENoise(n)						// sets random level of noise for the whole network
+		paramsfile.printf("%d %f %f \n",N, ee, n)
+		printf("Doing parameter set %d: EE=%f Enoise=%f\n",N, ee, n)
+		for Nt=1,$1 {
+			go()
+			sprint(name,"%s-%d-%d.txt",basename,N, Nt)
+			SaveRaster(name)
+		}
+		printf("Done parameter set %d\n",N)
+		
+	}
+
+	paramsfile.close()
+}
+
+
+// Grant functions
+// All weights equal. 2 groups. Vary weights. Use clustering to find out the performance for different connection strengths. 10 neurons
+proc DoWs(){
+	SetENoise(0.012)
+	SetINoise(0.013)
+	windx=1
+	NTrials=$1
+	for (w=0.001; w<0.015;w=w+0.0005){
+		CreateRandSyn(w,w,5,2)
+		for (Nt=1;Nt<=NTrials;Nt=Nt+1){
+			go()
+			sprint(name,"W%d-%d.txt",windx,Nt)
+			SaveRaster(name)
+		}
+		windx=windx+1
+	}
+}
+
+// All weights equal. 2 groups. Vary weights. Use clustering to find out the performance for different connection strengths. 30 neurons
+proc DoWs30(){
+	SetENoise(0.012)
+	//SetINoise(0.013)
+	windx=1
+	NTrials=$1
+	for (w=0.000; w<0.005;w=w+0.0002){		// start to hypersynchronize at around 0.0045
+		CreateRandSyn(w,w,15,2)
+		for (Nt=1;Nt<=NTrials;Nt=Nt+1){
+			go()
+			sprint(name,"W%d-%d.txt",windx,Nt)
+			SaveRaster(name)
+		}
+		windx=windx+1
+	}
+}
+
+// Common input - 10 neurons
+objref vlist, ci
+
+//$1: last index of the neurons receiving the common input (15 -> neurons [0,14])
+//$2 multiplication factor of the CI
+proc SetupCI(){
+	file.ropen("ge0s-alpha.txt")
+	Nneurs=file.scanvar()
+	Nsteps=file.scanvar()
+	interv=file.scanvar()
+	
+	vlist= new List()
+	vlist.append(new Vector(Nsteps))
+	ci=vlist.object(0)
+	for i=0,Nsteps-1 {ci.x[i]=file.scanvar()}		// read the common input
+	file.close()
+	
+	for (n=0;n<$1;n=n+1){			// first $1 neurons
+		ci.play(&neurs[n].noise2.g_e0,1000*interv)
+		neurs[n].noise2.std_e = 0.001
+	}
+	ci.mul($2)
+}
+
+
+
+proc DoCI(){
+	SetENoise(0.012)
+	//SetINoise(0.013)
+	
+	file.ropen("ge0s-alpha.txt")
+	Nneurs=file.scanvar()
+	Nsteps=file.scanvar()
+	interv=file.scanvar()
+	
+	vlist= new List()
+	vlist.append(new Vector(Nsteps))
+	ci=vlist.object(0)
+	for i=0,Nsteps-1 {ci.x[i]=file.scanvar()}		// read the common input
+	file.close()
+	
+	for (n=0;n<5;n=n+1){			// 10 neurons
+		ci.play(&neurs[n].noise2.g_e0,1000*interv)
+		neurs[n].noise2.std_e = 0.001
+	}
+	
+	sindx=1
+	sold=1
+	for (s=0.0001;s<1;s=s+0.03){
+		ci.mul(1/sold)		// rescale common input
+		ci.mul(s)
+		for (n=0;n<5;n=n+1){		// readjust background noise to keep FR approx constant
+			neurs[n].noise.g_e0 = 0.012-ci.mean()
+		}
+		
+		for (Nt=1;Nt<=50;Nt=Nt+1){
+			go()
+			sprint(name,"CI%d-%d.txt",sindx,Nt)
+			SaveRaster(name)
+		}
+		sindx=sindx+1
+		sold=s
+	}
+}
+
+// Common input - 30 neurons
+objref vlist, ci
+
+proc DoCI30(){
+	ENoise=0.011
+	SetENoise(ENoise)
+	SetINoise(0)
+	NTrials=$1
+	
+	file.ropen("ge0s-alpha.txt")
+	Nneurs=file.scanvar()
+	Nsteps=file.scanvar()
+	interv=file.scanvar()
+	
+	vlist= new List()
+	vlist.append(new Vector(Nsteps))
+	ci=vlist.object(0)
+	for i=0,Nsteps-1 {ci.x[i]=file.scanvar()}		// read the common input
+	file.close()
+	
+	for (n=0;n<15;n=n+1){			// 30 neurons. The first 15 receive the common inputs
+		ci.play(&neurs[n].noise2.g_e0,1000*interv)
+		neurs[n].noise2.std_e = 0.001
+	}
+	
+	sindx=1
+	sold=1
+	for (s=0.0001;s<0.6;s=s+0.02){		
+		ci.mul(1/sold)		// rescale common input
+		ci.mul(s)
+		for (n=0;n<15;n=n+1){		// readjust background noise to keep FR approx constant
+			neurs[n].noise.g_e0 = ENoise-ci.mean()
+		}
+		
+		for (Nt=1;Nt<=NTrials;Nt=Nt+1){
+			go()
+			sprint(name,"CI%d-%d.txt",sindx,Nt)
+			SaveRaster(name)
+		}
+		sindx=sindx+1
+		sold=s
+	}
+}
+// $1 nb trials per param set
+// $2 nb of param sets
+// Same as DoDuals, but with common inputs, rather than noise rescaling 
+objref r, paramsfile
+r=new Random(5)
+paramsfile=new File()
+proc DoDualsCI(){
+	string_dialog("Enter basename for dualCI file series:", basename)
+	
+	sprint(name,"%s-params.txt",basename)
+	paramsfile.wopen(name)
+	//ENoise= 0.012		//  fixed background noise. 10 neurons
+	ENoise= 0.011		//  fixed background noise. 30 neurons
+	SetENoise(ENoise)						
+							
+	
+	SetupCI(15, 1)		// 30 neurons. give the common input to the first 15 neurons
+	
+	sold=1
+	oldee=1
+	for N=1,$2{						// do $2 sets of {ee, xfactor CI)
+		//ee=r.uniform(1,6)				//10 neurons.  pick a random scaling for the weights
+		ee=r.uniform(1,5)				//30 neurons.  pick a random scaling for the weights
+		//ee=1				// constant scaling (1=low synaptic strength)
+		ScaleBlock(firstenrn,lastenrn,firstenrn,lastenrn,ee/oldee)
+		oldee=ee
+		//s=r.uniform(0.001,1)	//10 neurons. pick a random scaling for the common inputs
+		s=r.uniform(0.01,0.7)	//30 neurons. pick a random scaling for the common inputs
+		//s=N/$2			// regular increase in common input strength
+		ci.mul(1/sold)		// rescale common input
+		ci.mul(s)
+		sold=s
+		//for (n=0;n<5;n=n+1){		// 10 neurons. readjust background noise to keep FR approx constant (1st 5 neurons)
+		//for (n=0;n<10;n=n+1){		// 10 neurons. readjust background noise to keep FR approx constant (all 10 neurons)
+		for (n=0;n<15;n=n+1){		// 30 neurons. readjust background noise to keep FR approx constant (1st 15 neurons)
+		//for (n=0;n<30;n=n+1){		// 30 neurons. readjust background noise to keep FR approx constant (all 30 neurons)
+			neurs[n].noise.g_e0 = ENoise-ci.mean()
+		}
+
+		paramsfile.printf("%d %f %f \n",N, ee, s)
+		printf("Doing parameter set %d: EE=%f CommonInput factor=%f\n",N, ee, s)
+		for Nt=1,$1 {
+			go()
+			sprint(name,"%s-%d-%d.txt",basename,N, Nt)
+			SaveRaster(name)
+		}
+		printf("Done parameter set %d\n",N)
+		
+	}
+
+	paramsfile.close()
+}
+
+
+// Paper functions (100 neurons)
+// Vary weights. Use clustering to find out the performance for different connection strengths
+proc DoWs100(){
+	
+	NTrials=$1
+	
+	string_dialog("Enter basename for weight file series:", basename)
+	windx=1
+	oldee=1
+	for (ee=1; ee<=5; ee=ee+0.2){
+	
+		ScaleBlock(firstenrn,lastenrn,firstenrn,lastenrn,ee/oldee)
+		oldee=ee
+		
+		for (Nt=1;Nt<=NTrials;Nt=Nt+1){
+			printf("Doing parameter set Sc=%.1f Trial=%d\n",ee, Nt)
+			go()
+			sprint(name,"W%s%d-%d.txt",basename,windx,Nt+50)
+			SaveRaster(name)
+		}
+		windx=windx+1
+	}
+}
+
+// Paper functions (100 neurons)
+// Vary common external. Use clustering to find out the performance for different levels of external noise
+proc DoNoise100(){
+	
+	NTrials=$1
+	
+	string_dialog("Enter basename for Common Noise Input file series:", basename)
+	windx=1
+	
+	for (En=0.008; En<=0.022; En=En+0.001){
+	
+		SetENoise(En)
+		
+		for (Nt=1;Nt<=NTrials;Nt=Nt+1){
+			printf("Doing parameter set ENoise=%.3f Trial=%d\n",En, Nt)
+			go()
+			sprint(name,"N%s%d-%d.txt",basename,windx,Nt)
+			SaveRaster(name)
+		}
+		windx=windx+1
+	}
+}
+
+// Paper: Variation in simulation length. Choose a connection weight (fixed). Use w=0 for control.
+// Use log scale, so 3 time ranges at different resolutions (100:100:900, 1000:2000:30000, and 50000:10000:100000)
+proc DoTimeVar(){
+	NTrials=$1
+	w=0.0014		// 30 neurons (see DoWs30() results. Point on the start of the upslope
+	//w=0				// control. All disconnected
+	CreateRandSyn(w,w,15,2) // 30 neurons, 2 groups
+	//for (T=1000;T<=30000;T=T+2000){
+	//for (T=100;T<=900;T=T+100){
+	for (T=50000;T<=100000;T=T+10000){
+		tstop = T
+		runStopAt = tstop
+		rplot.resize(tstop, numneurons)
+		for (Nt=1; Nt<=NTrials; Nt=Nt+1){
+			printf("Doing parameter set T=%.2f Trial=%d\n",T, Nt)
+			go()
+			sprint(name,"Time%d-%d.txt",T,Nt)
+			//sprint(name,"TimeCtrl%d-%d.txt",T,Nt) // control no connection in either group
+			SaveRaster(name)
+		}
+	}
+}
+
+objectvar II
+objref Res 
+
+proc DoSynFireChain(){
+	
+	NTrials=$1
+	//Res= new Matrix(NTrials, 20)		// max 20 spikes/1 sec
+	tstop=1000
+	rplot.resize(tstop, numneurons)
+	for(n=0;n<ngraph;n=n+1){
+		g[n].size(0,tstop,-90,30)
+	}
+	neurs[0].soma II= new IClamp(.5)		// detonator of the chain
+	II.dur=20
+	II.del=200
+	II.amp=1
+	neurs[0].noise.g_e0 = 0.011/3		// reduce spontaneous activity of the detonator
+	neurs[0].noise.std_e = 0.003/3		// will produce 1 or two spikes
+	
+	//Res.zero()
+	oldee=1
+	indx=0
+	for (s=1; s<=15;s=s+0.2){
+		ScaleBlock(firstenrn,lastenrn,firstenrn,lastenrn,s/oldee)
+		oldee=s
+		indx=indx+1
+		printf(">>> Doing Weight Scaling=%.1f\n",s)
+		for (Nt=1; Nt<=NTrials; Nt=Nt+1){
+				
+				go()
+				
+				/*nspikes=neurs[0].apvector.size()
+				if (nspikes>0){
+					for (n=0; n<nspikes; n=n+1){
+						Res.x[Nt-1][n]=neurs[1].apvector.x[n]
+					}
+				}*/
+				sprint(name,"WSynFire%d-%d.txt",indx,Nt)
+				
+				SaveRaster(name)
+		}
+	}	
+}
+
+
+
+if (WithGraphics==1){
+	rplot = new RasterPlot(aplist,tstop,vec,synlist)
+	graphList[0].append(rplot)
+	rplot.resize(tstop, numneurons)
+
+	
+	//orplot = new RasterOnsetPlot(aplist,tstop,300,numneurons)			// any interspike interval greater than 50ms is considered a new onset
+	//graphList[0].append(orplot)
+	//orplot.resize(tstop, numneurons)
+
+
+	//addgraph("neurs[7].soma.v(0.5)",-90,30)
+	//addgraph("neurs[16].soma.v(0.5)",-90,30)
+	addgraph("neurs[0].soma.v(0.5)",-90,30)		// witin cluster
+	addgraph("neurs[1].soma.v(0.5)",-90,30)
+	addgraph("neurs[numneurons-1].soma.v(0.5)",-90,30)		// outside cluster
+	
+}else{
+	printf("No Graphics \n")
+}
+
